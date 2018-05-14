@@ -9,6 +9,7 @@
 
 typedef uint8_t* (*instruction)(uint8_t * ip, stack_t* stack);
 
+
 uint8_t* opt_nop(uint8_t* ip, stack_t* stack){
     return ip + 1;
 }
@@ -26,11 +27,6 @@ uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
     char data[2];
 
     switch (o.type){
-        case (OBJECT_CHAR):
-            data[1] = 0;
-            data[0] = o.ui8;
-            printf(data);
-            break;
         case(OBJECT_FLOAT):
             printf("%.6f", o.f);
             break;
@@ -58,6 +54,14 @@ uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
     return ip + 1;
 }
 
+uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
+    if(peek_stack(stack).type != OBJECT_UNSIGNED_8)
+        exit(-10);
+
+    printf("%c", pop_stack(stack).ui8);
+    return ip + 1;
+}
+
 uint8_t* opt_jump(uint8_t* ip, stack_t* stack){
     return stack->data[0].ptr + *(ip + 1);
 }
@@ -77,7 +81,7 @@ uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
 uint8_t* opt_emit_string(uint8_t* ip, stack_t* stack) {
     uint8_t length_of_string = *(ip + 1);
     for (size_t i = 0; i < length_of_string; i++) {
-        if (peek_stack(stack).type != 'c') {
+        if (peek_stack(stack).type != OBJECT_UNSIGNED_8) {
             exit(-10);
         }
 
@@ -156,7 +160,6 @@ uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
 
 uint8_t* opt_argumentify(uint8_t* ip, stack_t* stack) {
     uint8_t amount = *(ip + 1);
-    uint8_t args[amount];
     for(size_t i = 0; i < amount; i++){
         if(peek_stack(stack).type == OBJECT_UNSIGNED_8 || peek_stack(stack).type == OBJECT_SIGNED_8)
             *(ip + 3 + i) = pop_stack(stack).ui8;
