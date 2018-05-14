@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
         return -1;
 
     instruction* opt = malloc(sizeof(instruction*) * 256);
-    register_instructions(&opt);
+    register_instructions(opt);
 
     object_t entry_ptr;
     entry_ptr.type = OBJECT_POINTER;

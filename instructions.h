@@ -214,33 +214,41 @@ uint8_t* opt_divide (uint8_t* ip, stack_t* stack) {
     return ip + 3;
 }
 
-void register_instructions(instruction** opt){
+
+void register_instructions(instruction* opt){
     for(size_t i = 0; i < 256; i++){
-        (*opt)[i] = opt_nop;
+        opt[i] = opt_nop;
     }
 
-    (*opt)['.'] = opt_nop; // No operation. I move nothing and nothing moves me.
+    opt['.'] = opt_nop; // No operation. I move nothing and nothing moves me.
+    opt['a'] = opt_argumentify; // Places the amount of elements specified by its argument from the stack in front of the next operation.
+                                   // (Effectively making the data from the stack into that operations arguments)
+                                   // NOTE: You must reserve space in the byte code for the data to be placed. Use the nop operation ('.') to reserve space.
 
-    (*opt)['b'] = opt_push_byte; // Pushes its argument as unsigned byte to the stack.
-    (*opt)['e'] = opt_emit; // Pops one byte from the stack an write it to standard out.
-    (*opt)['j'] = opt_jump; // Jumps to the address specified in its argument.
-    (*opt)['s'] = opt_push_string; // Pushes the amount of bytes specified by its first arguments onto the stack (The bytes following the first argument are pushed).
-    (*opt)['p'] = opt_emit_string; // Pops the amount of bytes specified by its argument of the stack and writes them to standard out.
+    ////// Opt codes pushing raw data onto the stack or prints raw data//////
+    opt['b'] = opt_push_byte; // Pushes its argument as unsigned byte to the stack.
+    opt['s'] = opt_push_string; // Pushes the amount of bytes specified by its first arguments onto the stack (The bytes following the first argument are pushed).
+    opt['e'] = opt_emit; // Pops one byte from the stack an writes it to standard out.
+    opt['i'] = opt_emit_char; // Pops a element from the stack and prints es contents to standard as a ascii character.
+    opt['p'] = opt_emit_string; // Pops the amount of bytes specified by its argument of the stack and writes them to standard out.
 
-    (*opt)['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two arguments are equal or if the first one is smaller/grater then the second.
-    (*opt)['<'] = opt_jump_less; // Executes a jump if the last compare determent that the first argument is smaller then the second argument of the compare.
-    (*opt)['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first argument is grater then the second argument of the compare.
-    (*opt)['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are not equal.
-    (*opt)['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are equal.
+     ////// Opt codes which control the flow //////
+    opt['j'] = opt_jump; // Jumps to the address specified in its argument.
+    opt['<'] = opt_jump_less; // Executes a jump if the last compare determent that the first argument is smaller then the second argument of the compare.
+    opt['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first argument is grater then the second argument of the compare.
+    opt['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are equal.
+    opt['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are not equal.
 
-    (*opt)['a'] = opt_argumentify; // Places the amount of elements specified by its argument from the stack in front of the next operation.
-                    // (Effectively making the data from the stack into that operations arguments)
-                    // NOTE: You must reserve space in the byte code for the data to be placed. Use the nop operation ('.') to reserve space.
-
-    (*opt)['+'] = opt_sum; // Sums the next two bytes and pushes the result onto the stack.
-    (*opt)['-'] = opt_sub; // Subtracts the next two bytes and pushes the result onto the stack.
-    (*opt)['*'] = opt_multiply; // Multiples the next two bytes and pushes the result onto the stack.
-    (*opt)['/'] = opt_divide; // Divides the next two bytes and pushes the result onto the stack.
+    ////// Logic controlling opt codes //////
+    opt['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two arguments are equal or if the first one is smaller/grater then the second.
+    opt['+'] = opt_sum; // Sums the next two bytes and pushes the result onto the stack.
+    opt['-'] = opt_sub; // Subtracts the next two bytes and pushes the result onto the stack.
+    opt['*'] = opt_multiply; // Multiples the next two bytes and pushes the result onto the stack.
+    opt['/'] = opt_divide; // Divides the next two bytes and pushes the result onto the stack.
+    opt['+'] = opt_sum; // Sums the next two bytes and pushes the result onto the stack.
+    opt['-'] = opt_sub; // Subtracts the next two bytes and pushes the result onto the stack.
+    opt['*'] = opt_multiply; // Multiples the next two bytes and pushes the result onto the stack.
+    opt['/'] = opt_divide; // Divides the next two bytes and pushes the result onto the stack.
 }
 
 #endif //VIRTUAL_MACHIEN_INSTRUCTIONS_H
