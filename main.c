@@ -9,7 +9,7 @@ void usage(){
     printf("Usage vm [FILE]");
 }
 
-int load_file(const char *filename, char **result) {
+int load_file(const char *filename, unsigned char **result) {
     size_t size = 0;
     FILE *f = fopen(filename, "rb");
     if (f == NULL)
@@ -18,9 +18,9 @@ int load_file(const char *filename, char **result) {
         return -1;
     }
     fseek(f, 0, SEEK_END);
-    size = ftell(f);
+    size = (unsigned int)ftell(f);
     fseek(f, 0, SEEK_SET);
-    *result = (char *)malloc(size+1);
+    *result = (unsigned char *)malloc(size+1);
     if (size != fread(*result, sizeof(char), size, f))
     {
         free(*result);
@@ -30,10 +30,6 @@ int load_file(const char *filename, char **result) {
     (*result)[size] = 0;
     return 0;
 }
-
-/*
- * mov
- * */
 
 int main(int argc, char** argv) {
     if(argc < 2){
@@ -60,6 +56,6 @@ int main(int argc, char** argv) {
     }
 
     free(opt);
-
+    del_stack(&stack);
     return 0;
 }
