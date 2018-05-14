@@ -9,7 +9,6 @@
 
 enum Object_Types  {
     OBJECT_FLAG,
-    OBJECT_CHAR,
     OBJECT_UNSIGNED_8,
     OBJECT_SIGNED_8,
     OBJECT_UNSIGNED_16,
