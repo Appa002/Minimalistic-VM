@@ -9,9 +9,22 @@
 
 typedef uint8_t* (*instruction)(uint8_t * ip, stack_t* stack);
 
+uint8_t* add_to_ip(uint8_t* ip, uint8_t amount){
+    while (amount > 0){
+        ip++;
+        if(*ip == ';'){
+            ip++;
+            while (*ip != ';')
+                ip++;
+            ip++;
+        }
+        amount--;
+    }
+    return ip;
+}
 
 uint8_t* opt_nop(uint8_t* ip, stack_t* stack){
-    return ip + 1;
+    return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_push_byte(uint8_t *ip, stack_t *stack){
@@ -19,12 +32,11 @@ uint8_t* opt_push_byte(uint8_t *ip, stack_t *stack){
     o.type = OBJECT_UNSIGNED_8;
     o.ui8 = *(ip + 1);
     push_stack(stack, o);
-    return ip + 2;
+    return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
     object_t o = pop_stack(stack);
-    char data[2];
 
     switch (o.type){
         case(OBJECT_FLOAT):
@@ -51,7 +63,7 @@ uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
         default:
             break;
     }
-    return ip + 1;
+    return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
@@ -59,23 +71,24 @@ uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
         exit(-10);
 
     printf("%c", pop_stack(stack).ui8);
-    return ip + 1;
+    return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump(uint8_t* ip, stack_t* stack){
-    return stack->data[0].ptr + *(ip + 1);
+    uint8_t arg = *(add_to_ip(ip, 1));
+    return stack->data[0].ptr + arg;
 }
 
 uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
-    uint8_t length_of_string = *(ip + 1);
+    uint8_t length_of_string = *add_to_ip(ip, 1);
     for(size_t i = 0; i < length_of_string; i++){
         object_t o;
         o.type = OBJECT_UNSIGNED_8;
-        o.ui8 = *(ip + i + 2);
+        o.ui8 = *(add_to_ip(ip, 2 + i));
         push_stack(stack, o);
     }
 
-    return ip + 2 + length_of_string;
+    return add_to_ip(ip, 2 + length_of_string);
 }
 
 uint8_t* opt_emit_string(uint8_t* ip, stack_t* stack) {
@@ -91,7 +104,7 @@ uint8_t* opt_emit_string(uint8_t* ip, stack_t* stack) {
         printf(data);
     }
 
-    return ip + 2;
+    return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_compare(uint8_t* ip, stack_t* stack) {
@@ -111,7 +124,7 @@ uint8_t* opt_compare(uint8_t* ip, stack_t* stack) {
     }
     push_stack(stack, object);
 
-    return ip + 3;
+    return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_jump_not_equal(uint8_t* ip, stack_t* stack) {
@@ -119,10 +132,11 @@ uint8_t* opt_jump_not_equal(uint8_t* ip, stack_t* stack) {
         exit(-10);
 
     uint8_t flag = pop_stack(stack).ui8;
+    uint8_t arg = *add_to_ip(ip, 1);
     if(flag != 0)
-        return stack->data[0].ptr + *(ip + 1);
+        return stack->data[0].ptr + arg;
     else
-        return ip + 2;
+        return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack) {
@@ -130,10 +144,11 @@ uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack) {
         exit(-10);
 
     uint8_t flag = pop_stack(stack).ui8;
+    uint8_t arg = *add_to_ip(ip, 1);
     if(flag == 0)
-        return stack->data[0].ptr + *(ip + 1);
+        return stack->data[0].ptr + arg;
     else
-        return ip + 2;
+        return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack) {
@@ -141,10 +156,11 @@ uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack) {
         exit(-10);
 
     uint8_t flag = pop_stack(stack).ui8;
+    uint8_t arg = *add_to_ip(ip, 1);
     if(flag == 2)
-        return stack->data[0].ptr + *(ip + 1);
+        return stack->data[0].ptr + arg;
     else
-        return ip + 2;
+        return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
@@ -152,71 +168,71 @@ uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
         exit(-10);
 
     uint8_t flag = pop_stack(stack).ui8;
+    uint8_t arg = *add_to_ip(ip, 1);
     if(flag == 1)
-        return stack->data[0].ptr + *(ip + 1);
+        return stack->data[0].ptr + arg;
     else
-        return ip + 2;
+        return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_argumentify(uint8_t* ip, stack_t* stack) {
-    uint8_t amount = *(ip + 1);
+    uint8_t amount = *add_to_ip(ip, 1);
     for(size_t i = 0; i < amount; i++){
         if(peek_stack(stack).type == OBJECT_UNSIGNED_8 || peek_stack(stack).type == OBJECT_SIGNED_8)
-            *(ip + 3 + i) = pop_stack(stack).ui8;
+            *(add_to_ip(ip, 3 + i)) = pop_stack(stack).ui8;
         else
             exit(-10);
     }
-    return ip + 2;
+    return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_sum(uint8_t* ip, stack_t* stack) {
-    uint8_t first = *(ip + 1);
-    uint8_t second = *(ip + 2);
+    uint8_t first = *add_to_ip(ip, 1);
+    uint8_t second = *add_to_ip(ip, 2);
 
     object_t o;
     o.type = OBJECT_SIGNED_8;
     o.i8 = first + second;
     push_stack(stack, o);
 
-    return ip + 3;
+    return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_sub(uint8_t* ip, stack_t* stack) {
-    uint8_t first = *(ip + 1);
-    uint8_t second = *(ip + 2);
+    uint8_t first = *add_to_ip(ip, 1);
+    uint8_t second = *add_to_ip(ip, 2);
 
     object_t o;
     o.type = OBJECT_SIGNED_8;
     o.i8 = first - second;
     push_stack(stack, o);
 
-    return ip + 3;
+    return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_multiply(uint8_t* ip, stack_t* stack) {
-    uint8_t first = *(ip + 1);
-    uint8_t second = *(ip + 2);
+    uint8_t first = *add_to_ip(ip, 1);
+    uint8_t second = *add_to_ip(ip, 2);
 
     object_t o;
     o.type = OBJECT_SIGNED_8;
     o.i8 = first * second;
     push_stack(stack, o);
 
-    return ip + 3;
+    return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_divide (uint8_t* ip, stack_t* stack) {
-    uint8_t first = *(ip + 1);
-    uint8_t second = *(ip + 2);
+    uint8_t first = *add_to_ip(ip, 1);
+    uint8_t second = *add_to_ip(ip, 2);
 
     object_t o;
     o.type = OBJECT_FLOAT;
     o.i8 = first / second;
     push_stack(stack, o);
 
-    return ip + 3;
+    return add_to_ip(ip, 3);
 }
-
 
 void register_instructions(instruction* opt){
     for(size_t i = 0; i < 256; i++){
