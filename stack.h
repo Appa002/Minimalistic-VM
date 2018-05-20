@@ -12,7 +12,8 @@ enum Object_Types  {
     OBJECT_SIGNED,
     OBJECT_UNSIGNED,
     OBJECT_FLOAT,
-    OBJECT_POINTER
+    OBJECT_POINTER,
+    OBJECT_C_POINTER
 };
 
 typedef struct Object{
