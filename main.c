@@ -47,8 +47,8 @@ int main(int argc, char** argv) {
     register_instructions(opt);
 
     object_t entry_ptr;
-    entry_ptr.type = OBJECT_POINTER;
-    entry_ptr.ptr = ip;
+    entry_ptr.type = OBJECT_C_POINTER;
+    entry_ptr.data = ip;
     stack.data[0] = entry_ptr;
 
     while(*ip != 'h'){
