@@ -39,14 +39,24 @@ uint8_t* opt_push_8_bit(uint8_t *ip, stack_t *stack){
     return add_to_ip(ip, 2);
 }
 
+uint8_t* opt_push_16_bit(uint8_t* ip, stack_t* stack){
+    object_t o;
+    o.type = OBJECT_UNSIGNED;
+    o.size = sizeof(uint16_t);
+    o.data = malloc(sizeof(uint16_t));
+    memcpy(o.data, add_to_ip(ip, 1), sizeof(uint16_t));
+    push_stack(stack, o);
+    return add_to_ip(ip, 2);
+}
+
 uint8_t* opt_push_32_bit(uint8_t* ip, stack_t* stack){
     object_t o;
     o.type = OBJECT_UNSIGNED;
     o.size = sizeof(uint32_t);
     o.data = malloc(sizeof(uint32_t));
-    memcpy(o.data, add_to_ip(ip, 1), sizeof(uint32_t));
+    *(uint32_t*)o.data = ip[1] | (ip[2] << 8) | (ip[3] << 16) | (ip[4] << 32);
     push_stack(stack, o);
-    return add_to_ip(ip, 2);
+    return add_to_ip(ip, 5);
 }
 
 uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
@@ -78,7 +88,7 @@ uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
 
 uint8_t* opt_jump(uint8_t* ip, stack_t* stack){
     uint8_t arg = *(add_to_ip(ip, 1));
-    return stack->data[0].data + arg;
+    return add_to_ip(stack->data[0].data, arg);
 }
 
 uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
@@ -140,7 +150,7 @@ uint8_t* opt_jump_not_equal(uint8_t* ip, stack_t* stack) {
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag != 0)
-        return stack->data[0].data + arg;
+        return add_to_ip(stack->data[0].data, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -153,7 +163,7 @@ uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack) {
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 0)
-        return stack->data[0].data + arg;
+        return add_to_ip(stack->data[0].data, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -166,7 +176,7 @@ uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack) {
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 2)
-        return stack->data[0].data + arg;
+        return add_to_ip(stack->data[0].data, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -179,7 +189,7 @@ uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 1)
-        return stack->data[0].data + arg;
+        return add_to_ip(stack->data[0].data, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -347,10 +357,25 @@ uint8_t* opt_divide (uint8_t* ip, stack_t* stack) {
 }
 
 uint8_t* opt_call(uint8_t* ip, stack_t* stack){
-    if(peek_stack(stack).type != OBJECT_UNSIGNED || peek_stack(stack).size != 4)
+    if(peek_stack(stack).type != OBJECT_UNSIGNED || peek_stack(stack).size != sizeof(uint32_t))
         exit(-10);
     uint32_t address = pop_stack(uint32_t, stack);
-    return stack->data[0].data+ address;
+
+    object_t o;
+    o.type = OBJECT_POINTER;
+    o.size = sizeof(intptr_t);
+    o.data = malloc(sizeof(intptr_t));
+    *(intptr_t *)o.data = (intptr_t)(ip + 1) - (intptr_t)(stack->data[0].data);
+    push_stack(stack, o);
+
+    return stack->data[0].data + address;
+}
+
+uint8_t* opt_return(uint8_t* ip, stack_t* stack){
+    if(peek_stack(stack).type != OBJECT_POINTER || peek_stack(stack).size != sizeof(intptr_t))
+        exit(-10);
+    intptr_t address = pop_stack(intptr_t, stack);
+    return stack->data[0].data + address;
 }
 
 void register_instructions(instruction* opt){
@@ -365,6 +390,7 @@ void register_instructions(instruction* opt){
 
     ////// Opt codes pushing raw data onto the stack or prints raw data//////
     opt['b'] = opt_push_8_bit; // Pushes its argument as unsigned byte to the stack.
+    opt['q'] = opt_push_16_bit; // Pushes its argument as 16 bit unsigned num on to the stack.
     opt['l'] = opt_push_32_bit; // Pushes its argument as 32 bit unsigned num on to the stack.
     opt['s'] = opt_push_string; // Pushes the amount of bytes specified by its first arguments onto the stack (The bytes following the first argument are pushed).
     opt['e'] = opt_emit; // Pops one byte from the stack an writes it to standard out.
@@ -377,6 +403,8 @@ void register_instructions(instruction* opt){
     opt['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first argument is grater then the second argument of the compare. Expects 32bit num
     opt['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are equal. Expects 32bit num
     opt['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are not equal. Expects 32bit num
+    opt['g'] = opt_call;
+    opt['r'] = opt_return;
 
     ////// Logic controlling opt codes //////
     opt['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two arguments are equal or if the first one is smaller/grater then the second.
