@@ -9,37 +9,38 @@
 
 enum Object_Types  {
     OBJECT_FLAG,
-    OBJECT_UNSIGNED_8,
-    OBJECT_SIGNED_8,
-    OBJECT_UNSIGNED_16,
-    OBJECT_SIGNED_16,
-    OBJECT_UNSIGNED_32,
-    OBJECT_SIGNED_32,
+    OBJECT_SIGNED,
+    OBJECT_UNSIGNED,
     OBJECT_FLOAT,
     OBJECT_POINTER
 };
 
 typedef struct Object{
     enum Object_Types type;
-    union {
-        uint8_t ui8;
-        uint16_t ui16;
-        uint32_t ui32;
-
-        int8_t i8;
-        int16_t i16;
-        int32_t i32;
-
-        float f;
-
-        void* ptr;
-    };
+    size_t size;
+    void* data;
 } object_t;
 
 typedef struct Stack{
     object_t* data;
     uint8_t top;
 } stack_t;
+
+#define pop_stack(type, stack)  ({type var; var = *(type *) peek_stack(stack).data; remove_from_stack(stack); var;})
+
+void del_stack(stack_t* stack);
+
+object_t peek_stack(stack_t* stack){
+    return stack->data[stack->top];
+}
+
+void remove_from_stack(stack_t *stack){
+    free(stack->data[stack->top--].data);
+}
+
+void push_stack(stack_t* stack, object_t object){
+    stack->data[++stack->top] = object;
+}
 
 stack_t new_stack(uint16_t size){
     stack_t s;
@@ -49,20 +50,10 @@ stack_t new_stack(uint16_t size){
 }
 
 void del_stack(stack_t* stack){
+    while (stack->top > 0){
+        remove_from_stack(stack);
+    }
     free(stack->data);
 }
-
-object_t peek_stack(stack_t* stack){
-    return stack->data[stack->top];
-}
-
-object_t pop_stack(stack_t* stack){
-    return stack->data[stack->top--];
-}
-
-void push_stack(stack_t* stack, object_t object){
-    stack->data[++stack->top] = object;
-}
-
 
 #endif //VIRTUAL_MACHIEN_STACK_H
