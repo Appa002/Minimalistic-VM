@@ -44,9 +44,9 @@ uint8_t* opt_push_16_bit(uint8_t* ip, stack_t* stack){
     o.type = OBJECT_UNSIGNED;
     o.size = sizeof(uint16_t);
     o.data = malloc(sizeof(uint16_t));
-    memcpy(o.data, add_to_ip(ip, 1), sizeof(uint16_t));
+    *(uint16_t*)o.data = (ip[1] << 8) | (ip[2]);
     push_stack(stack, o);
-    return add_to_ip(ip, 2);
+    return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_push_32_bit(uint8_t* ip, stack_t* stack){
@@ -54,7 +54,7 @@ uint8_t* opt_push_32_bit(uint8_t* ip, stack_t* stack){
     o.type = OBJECT_UNSIGNED;
     o.size = sizeof(uint32_t);
     o.data = malloc(sizeof(uint32_t));
-    *(uint32_t*)o.data = ip[1] | (ip[2] << 8) | (ip[3] << 16) | (ip[4] << 32);
+    *(uint32_t*)o.data = (ip[1] << 32) | (ip[2] << 16) | (ip[3] << 8) | (ip[4]);
     push_stack(stack, o);
     return add_to_ip(ip, 5);
 }
