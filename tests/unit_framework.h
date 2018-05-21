@@ -33,18 +33,23 @@ unsigned int num_of_test = 0;
 #define ASSERT_EQUAL_STRING(str_a, str_b) if(strcmp(str_a, str_b) != 0) return 1;
 
 void start_unit_test(){
+    int successful_tests = 0;
     for(unsigned int i = 0; i < num_of_test; i++){
         printf("Checking test ... \"");
         printf(registered_tests_names[i]);
         printf("\"\n");
         int result = registered_tests[i]();
-        printf("    ->%i", result);
-        if(result == 0)
+        printf("    -> %i ", result);
+        if(result == 0){
             printf("[OK]\n");
+            successful_tests++;
+        }
         else
             printf("[ERROR]\n");
 
     }
+    printf("==============\n");
+    printf("Ran: %i, Successful: %i, Failed: %i, %f%%\n", num_of_test, successful_tests, num_of_test - successful_tests, ((double)successful_tests / (double)num_of_test) * 100);
 }
 
 void end_unit_test(){
