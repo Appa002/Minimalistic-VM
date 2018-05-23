@@ -204,7 +204,6 @@ int unit_test_sum() {
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
 
-  //  ip = opt_push_8_bit(ip, &stack);
     object_t o;
     o.type = OBJECT_NUMBER;
     o.size = sizeof(uint16_t);
@@ -248,7 +247,7 @@ int unit_test_multiply() {
 }
 
 int unit_test_divide() {
-    /*uint8_t code[] = {'b', 0x1, 'b', 0x3, '/', 'h'};
+    uint8_t code[] = {'b', 2, 'b', 3, '/', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
 
@@ -256,16 +255,43 @@ int unit_test_divide() {
     ip = opt_push_8_bit(ip, &stack);
     ip = opt_divide(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(float*)peek_stack(&stack).data, 0x3);*/
+    ASSERT_EQUAL(peek_stack(&stack).double_value, 1.5f);
+    ASSERT_EQUAL(peek_stack(&stack).signage, 0);
     return 0;
 }
 
 int unit_test_call() {
+    uint8_t code[] = {'l', 0, 0, 0, 0, 'c', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
+    stack.data[0].ptr = ip;
 
+    ip = opt_push_32_bit(ip, &stack);
+    ASSERT_EQUAL(*ip, 'c');
+    ip = opt_call(ip, &stack);
+
+    ASSERT_EQUAL(*ip, 'l');
+    return 0;
 }
 
 int unit_test_return() {
+    uint8_t code[] = {'l', 0, 0, 0, 0, 'r', 'c', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
+    stack.data[0].ptr = ip;
 
+    ip = opt_push_32_bit(ip, &stack);
+    ASSERT_EQUAL(*ip, 'r');
+    ip++;
+    ip = opt_call(ip, &stack);
+    ASSERT_EQUAL(*ip, 'l');
+    ip = opt_push_32_bit(ip, &stack);
+    pop_stack(&stack);
+    ASSERT_EQUAL(*ip, 'r');
+    ip = opt_return(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+
+    return 0;
 }
 
 int main() {
