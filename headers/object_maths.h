@@ -7,9 +7,7 @@
 
 #include "object.h"
 
-object_t add(object_t a, object_t b);
-
-bitarr_t underflow_save_subtract(bitarr_t a, bitarr_t b, unsigned* signage){
+double underflow_save_subtract(double a, double b, unsigned* signage){
     *signage = (a > b) ? (0) : (1);
     if(a > b)
         return a - b;
@@ -17,89 +15,121 @@ bitarr_t underflow_save_subtract(bitarr_t a, bitarr_t b, unsigned* signage){
         return b - a;
 }
 
-object_t _add_number(object_t a, object_t b){
+object_t add(object_t a, object_t b){
     object_t out;
+    double result;
+    double a_value = a.value;
+    double b_value = b.value;
+
+    if(a.type == OBJECT_FLOAT)
+        a_value = a.double_value;
+
+    if(b.type == OBJECT_FLOAT)
+        b_value = b.double_value;
+
     if(a.signage == b.signage){
-        out.value = a.value + b.value;
+        result = a_value + b_value;
         out.signage = a.signage;
     }else{
-        out.value = underflow_save_subtract(a.value, b.value, &out.signage);
+        result = underflow_save_subtract(a_value, b_value, &out.signage);
     }
 
     out.type = OBJECT_NUMBER;
+    out.value = (bitarr_t)result;
+    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT){
+        out.type = OBJECT_FLOAT;
+        out.double_value = result;
+    }
+
     out.size = (a.size > b.size) ? (a.size) : (b.size);
+
     return out;
 }
 
-object_t _add_float(object_t a, object_t b){
-
-}
-
-object_t _subtract_number(object_t a, object_t b){
+object_t subtract(object_t a, object_t b){
     object_t out;
+    double result;
+    double a_value = a.value;
+    double b_value = b.value;
+
+    out.type = OBJECT_NUMBER;
+    out.size = (a.size > b.size) ? (a.size) : (b.size);
+
+    if (a.type == OBJECT_FLOAT){
+        a_value = a.double_value;
+        out.type = OBJECT_FLOAT;
+    }
+    if (b.type == OBJECT_FLOAT){
+        b_value = b.double_value;
+        out.type = OBJECT_FLOAT;
+    }
+
     if(a.signage == b.signage){
         if(a.signage == 1){
             b.signage = 0;
-            out = add(a, b);
+            return add(a, b);
         }else{
-            out.value = underflow_save_subtract(a.value, b.value, &out.signage);
+            result = underflow_save_subtract(a_value, b_value, &out.signage);
         }
     }else{
-        out.value = a.value + b.value;
+        result = a_value + b_value;
         out.signage = (a.signage == 1) ? (1) : (0);
     }
 
-    out.size = (a.size > b.size) ? (a.size) : (b.size);
-    out.type = OBJECT_NUMBER;
+    out.value = (bitarr_t)result;
+    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT)
+        out.double_value = result;
+
     return out;
 }
 
-object_t _subtract_float(object_t a, object_t b){
 
-}
-
-object_t _multiply_number(object_t a, object_t b){
+object_t multiply(object_t a, object_t b){
     object_t out;
-    out.value = a.value * b.value;
+    double a_value = a.value;
+    double b_value = b.value;
+    double result;
+
+    if(a.type == OBJECT_FLOAT)
+        a_value = a.double_value;
+    if(a.type == OBJECT_FLOAT)
+        b_value = b.double_value;
+
+    result = a_value * b_value;
     out.size = (a.size > b.size) ? (a.size) : (b.size);
     out.signage = (a.signage == b.signage) ? (0) : (1);
+
     out.type = OBJECT_NUMBER;
+    out.value = (bitarr_t)result;
+    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT){
+        out.double_value = result;
+        out.type = OBJECT_FLOAT;
+    }
+
     return out;
 }
 
-object_t _multiply_float(object_t a, object_t b){
-
-}
-
-object_t _divide_number(object_t a, object_t b){
+object_t divide(object_t a, object_t b){
     object_t out;
+
+    double a_value = a.value;
+    double b_value = b.value;
+
+    if(a.type == OBJECT_FLOAT)
+        a_value = a.double_value;
+    if(a.type == OBJECT_FLOAT)
+        b_value = b.double_value;
+
+    out.double_value = a_value / b_value;
     out.type = OBJECT_FLOAT;
+
+    if((bitarr_t)out.double_value == out.double_value)
+        out.type = OBJECT_NUMBER;
+
     out.size = sizeof(uint32_t);
     out.signage = (a.signage != b.signage) ? (1) : (0);
-    uint32_t value = (uint32_t)((float)(a.value / b.value) * pow(10, 8));
-    uint32_t comma_pos = get_last_significant_bit_index((bitarr_t) (a.value / b.value));
-
-    out.value = write_at(out.value, value, 0, CHAR_BIT * 8);
-    out.value = write_at(out.value, comma_pos, (sizeof(uint32_t) * CHAR_BIT / 2), sizeof(uint32_t) * CHAR_BIT);
     return out;
 }
 
-object_t _divide_float(object_t a, object_t b){
-
-}
-object_t add(object_t a, object_t b) {
-    return _add_number(a, b);
-}
-object_t subtract (object_t a, object_t b){
-    return _subtract_number(a, b);
-}
-
-object_t multiply (object_t a, object_t b){
-    return _multiply_number(a, b);
-}
-
-object_t divide (object_t a, object_t b){
-    return _divide_number(a, b);
-}
 
 #endif //VIRTUAL_MACHIEN_OBJECT_MATHS_H
