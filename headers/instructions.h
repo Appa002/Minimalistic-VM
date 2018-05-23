@@ -57,7 +57,7 @@ uint8_t* opt_push_32_bit(uint8_t* ip, stack_t* stack){
     o.type = OBJECT_NUMBER;
     o.size = sizeof(uint32_t);
     o.value = 0x0;
-    o.value = (ip[1] << 32) | (ip[2] << 16) | (ip[3] << 8) | (ip[4]);
+    o.value = (ip[1] << 31) | (ip[2] << 16) | (ip[3] << 8) | (ip[4]);
     o.signage = 0;
     push_stack(stack, o);
     return add_to_ip(ip, 5);
@@ -224,8 +224,9 @@ uint8_t* opt_multiply(uint8_t* ip, stack_t* stack) {
 }
 
 uint8_t* opt_divide (uint8_t* ip, stack_t* stack) {
-    object_t o;
-    o = divide(pop_stack(stack), pop_stack(stack));
+    object_t a = pop_stack(stack);
+    object_t b = pop_stack(stack);
+    object_t o = divide(a, b);
     push_stack(stack, o);
     return add_to_ip(ip, 1);
 }
@@ -238,7 +239,7 @@ uint8_t* opt_call(uint8_t* ip, stack_t* stack){
     object_t o;
     o.type = OBJECT_POINTER;
     o.size = sizeof(intptr_t);
-    o.value = (uint32_t)((ip + 1) - (intptr_t)(stack->data[0].ptr));
+    o.value = (uint32_t)((intptr_t)(ip + 1) - (intptr_t)(stack->data[0].ptr));
     push_stack(stack, o);
 
     return stack->data[0].ptr + address;
