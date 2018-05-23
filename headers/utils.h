@@ -19,7 +19,7 @@ uint32_t read_n_byte_number(void *data, uint64_t size){
         four_bytes_as_array[3 - i] = *((uint8_t*) data + (size - i - 1));
     }
 
-    return (four_bytes_as_array[0] << 32) | (four_bytes_as_array[1] << 16) |
+    return (four_bytes_as_array[0] << 31) | (four_bytes_as_array[1] << 16) |
            (four_bytes_as_array[2] << 8) | (four_bytes_as_array[3]);
 }
 
