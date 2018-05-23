@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "instructions.h"
-#include "stack.h"
+#include "headers/instructions.h"
+#include "headers/stack.h"
 
 void usage(){
     printf("Usage vm [FILE]");
@@ -36,7 +36,6 @@ int main(int argc, char** argv) {
         usage();
         return 1;
     }
-
     stack_t stack = new_stack(1024);
     uint8_t* ip;
 
@@ -48,7 +47,7 @@ int main(int argc, char** argv) {
 
     object_t entry_ptr;
     entry_ptr.type = OBJECT_C_POINTER;
-    entry_ptr.data = ip;
+    entry_ptr.ptr = ip;
     stack.data[0] = entry_ptr;
 
     while(*ip != 'h'){
