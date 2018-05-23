@@ -7,6 +7,8 @@
 
 #include <memory.h>
 #include "stack.h"
+#include "utils.h"
+#include "object_maths.h"
 
 typedef uint8_t* (*instruction)(uint8_t * ip, stack_t* stack);
 
@@ -30,10 +32,10 @@ uint8_t* opt_nop(uint8_t* ip, stack_t* stack){
 
 uint8_t* opt_push_8_bit(uint8_t *ip, stack_t *stack){
     object_t o;
-    o.data = malloc(sizeof(uint8_t));
-    *(uint8_t *) o.data = *add_to_ip(ip, 1);
-    o.type = OBJECT_UNSIGNED;
+    o.value = *add_to_ip(ip, 1);
+    o.type = OBJECT_NUMBER;
     o.size = sizeof(uint8_t);
+    o.signage = 0;
 
     push_stack(stack, o);
     return add_to_ip(ip, 2);
@@ -41,20 +43,22 @@ uint8_t* opt_push_8_bit(uint8_t *ip, stack_t *stack){
 
 uint8_t* opt_push_16_bit(uint8_t* ip, stack_t* stack){
     object_t o;
-    o.type = OBJECT_UNSIGNED;
+    o.type = OBJECT_NUMBER;
     o.size = sizeof(uint16_t);
-    o.data = malloc(sizeof(uint16_t));
-    *(uint16_t*)o.data = (ip[1] << 8) | (ip[2]);
+    o.value = 0x0;
+    o.value = (ip[1] << 8) | (ip[2]);
+    o.signage = 0;
     push_stack(stack, o);
     return add_to_ip(ip, 3);
 }
 
 uint8_t* opt_push_32_bit(uint8_t* ip, stack_t* stack){
     object_t o;
-    o.type = OBJECT_UNSIGNED;
+    o.type = OBJECT_NUMBER;
     o.size = sizeof(uint32_t);
-    o.data = malloc(sizeof(uint32_t));
-    *(uint32_t*)o.data = (ip[1] << 32) | (ip[2] << 16) | (ip[3] << 8) | (ip[4]);
+    o.value = 0x0;
+    o.value = (ip[1] << 32) | (ip[2] << 16) | (ip[3] << 8) | (ip[4]);
+    o.signage = 0;
     push_stack(stack, o);
     return add_to_ip(ip, 5);
 }
@@ -64,13 +68,10 @@ uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
 
     switch (o.type){
         case(OBJECT_FLOAT):
-            printf("%.6f", pop_stack(float, stack));
+            printf("%.6f", (float)pop_stack(stack).value);
             break;
-        case(OBJECT_UNSIGNED):
-            printf("%u", pop_stack(uint16_t, stack));
-            break;
-        case(OBJECT_SIGNED):
-            printf("%d", pop_stack(int16_t, stack));
+        case(OBJECT_NUMBER):
+            (peek_stack(stack).signage == 0) ? (printf("%u", (unsigned)pop_stack(stack).value)) : ((printf("-%u", (unsigned)pop_stack(stack).value)));
             break;
         default:
             break;
@@ -79,26 +80,25 @@ uint8_t* opt_emit(uint8_t* ip, stack_t* stack) {
 }
 
 uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
-    if(peek_stack(stack).type != OBJECT_UNSIGNED && peek_stack(stack).size != 1)
+    if(peek_stack(stack).type != OBJECT_NUMBER && peek_stack(stack).size != sizeof(uint8_t))
         exit(-10);
 
-    printf("%c", pop_stack(uint8_t, stack));
+    printf("%c", (uint8_t)pop_stack(stack).value);
     return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump(uint8_t* ip, stack_t* stack){
     uint8_t arg = *(add_to_ip(ip, 1));
-    return add_to_ip(stack->data[0].data, arg);
+    return add_to_ip(stack->data[0].ptr, arg);
 }
 
 uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
     uint8_t length_of_string = *add_to_ip(ip, 1);
     for(size_t i = 0; i < length_of_string; i++){
         object_t o;
-        o.type = OBJECT_UNSIGNED;
+        o.type = OBJECT_NUMBER;
         o.size = sizeof(uint8_t);
-        o.data = malloc(sizeof(uint8_t));
-        *(uint8_t*)o.data = *add_to_ip(ip, 2 + i);
+        o.value = *add_to_ip(ip, 2 + i);
         push_stack(stack, o);
     }
 
@@ -108,12 +108,12 @@ uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
 uint8_t* opt_emit_string(uint8_t* ip, stack_t* stack) {
     uint8_t length_of_string = *(ip + 1);
     for (size_t i = 0; i < length_of_string; i++) {
-        if (peek_stack(stack).type != OBJECT_UNSIGNED || peek_stack(stack).size != 1) {
+        if (peek_stack(stack).type != OBJECT_NUMBER || peek_stack(stack).size != 1) {
             exit(-10);
         }
 
         char data[2];
-        data[0] = pop_stack(uint8_t, stack);
+        data[0] = (uint8_t)pop_stack(stack).value;
         data[1] = 0;
         printf(data);
     }
@@ -128,14 +128,13 @@ uint8_t* opt_compare(uint8_t* ip, stack_t* stack) {
     object_t object;
     object.type = OBJECT_FLAG;
     object.size = sizeof(uint8_t);
-    object.data = malloc(sizeof(uint8_t));
 
     if(first-second == 0){
-        *(uint8_t*)object.data = 0;
+        object.value = 0;
     }else if(first-second > 0) {
-        *(uint8_t*)object.data = 1;
+        object.value = 1;
     }else{
-        *(uint8_t*)object.data = 2;
+        object.value = 2;
     }
     push_stack(stack, object);
 
@@ -146,11 +145,11 @@ uint8_t* opt_jump_not_equal(uint8_t* ip, stack_t* stack) {
     if(peek_stack(stack).type != OBJECT_FLAG)
         exit(-10);
 
-    uint8_t flag = pop_stack(uint8_t, stack);
+    uint8_t flag = (uint8_t)pop_stack(stack).value;
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag != 0)
-        return add_to_ip(stack->data[0].data, arg);
+        return add_to_ip(stack->data[0].ptr, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -159,11 +158,11 @@ uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack) {
     if(peek_stack(stack).type != OBJECT_FLAG)
         exit(-10);
 
-    uint8_t flag = pop_stack(uint8_t, stack);
+    uint8_t flag = (uint8_t)pop_stack(stack).value;
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 0)
-        return add_to_ip(stack->data[0].data, arg);
+        return add_to_ip(stack->data[0].ptr, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -172,11 +171,11 @@ uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack) {
     if(peek_stack(stack).type != OBJECT_FLAG)
         exit(-10);
 
-    uint8_t flag = pop_stack(uint8_t, stack);
+    uint8_t flag = (uint8_t)pop_stack(stack).value;
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 2)
-        return add_to_ip(stack->data[0].data, arg);
+        return add_to_ip(stack->data[0].ptr, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -185,11 +184,11 @@ uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
     if(peek_stack(stack).type != OBJECT_FLAG)
         exit(-10);
 
-    uint8_t flag = pop_stack(uint8_t, stack);
+    uint8_t flag = (uint8_t)pop_stack(stack).value;
     uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 1)
-        return add_to_ip(stack->data[0].data, arg);
+        return add_to_ip(stack->data[0].ptr, arg);
     else
         return add_to_ip(ip, 2);
 }
@@ -198,184 +197,58 @@ uint8_t* opt_argumentify(uint8_t* ip, stack_t* stack) {
     uint8_t amount = *add_to_ip(ip, 1);
     for(uint8_t i = 0; i < amount; i++){
         object_t o = peek_stack(stack);
-        memcpy(add_to_ip(ip, 3 + i), o.data, o.size);
+        memcpy(add_to_ip(ip, 3 + i), &o.value, o.size);
         remove_from_stack(stack);
     }
-    return add_to_ip(ip, 1);
+    return add_to_ip(ip, 2);
 }
 
 uint8_t* opt_sum(uint8_t* ip, stack_t* stack) {
-    object_t o;
-    o.size = sizeof(uint32_t); // sizeof(uint32_t) == sizeof(int32_t)
-    o.data = malloc(sizeof(uint32_t));
-
-    if(peek_stack(stack).type == OBJECT_UNSIGNED){
-        uint32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_UNSIGNED;
-            *(uint32_t*)o.data = first + second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first + second;
-        }
-
-    }else{
-        int32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first + second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first + second;
-        }
-    }
-
+    object_t o = add(pop_stack(stack), pop_stack(stack));
     push_stack(stack, o);
     return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_sub(uint8_t* ip, stack_t* stack) {
     object_t o;
-    o.size = sizeof(uint32_t); // sizeof(uint32_t) == sizeof(int32_t)
-    o.data = malloc(sizeof(uint32_t));
-
-    if(peek_stack(stack).type == OBJECT_UNSIGNED){
-        uint32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first - second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first - second;
-        }
-
-    }else{
-        int32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first - second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first - second;
-        }
-    }
-
+    o = subtract(pop_stack(stack), pop_stack(stack));
     push_stack(stack, o);
     return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_multiply(uint8_t* ip, stack_t* stack) {
     object_t o;
-    o.size = sizeof(uint32_t); // sizeof(uint32_t) == sizeof(int32_t)
-    o.data = malloc(sizeof(uint32_t));
-
-    if(peek_stack(stack).type == OBJECT_UNSIGNED){
-        uint32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_UNSIGNED;
-            *(uint32_t*)o.data = first * second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first * second;
-        }
-
-    }else{
-        int32_t first = pop_stack(uint32_t, stack);
-
-        if(peek_stack(stack).type == OBJECT_UNSIGNED){
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first * second;
-        }else{
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_SIGNED;
-            *(int32_t*)o.data = first * second;
-        }
-    }
-
+    o = multiply(pop_stack(stack), pop_stack(stack));
     push_stack(stack, o);
     return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_divide (uint8_t* ip, stack_t* stack) {
     object_t o;
-    o.size = sizeof(float); // sizeof(uint32_t) == sizeof(int32_t)
-    o.data = malloc(sizeof(float));
-
-    if (peek_stack(stack).type == OBJECT_UNSIGNED) {
-        uint32_t first = pop_stack(uint32_t, stack);
-
-        if (peek_stack(stack).type == OBJECT_UNSIGNED) {
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        } else if (peek_stack(stack).type == OBJECT_SIGNED) {
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        } else if (peek_stack(stack).type == OBJECT_FLOAT) {
-            float second = pop_stack(float, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        }
-
-    } else {
-        int32_t first = pop_stack(uint32_t, stack);
-
-        if (peek_stack(stack).type == OBJECT_UNSIGNED) {
-            uint32_t second = pop_stack(uint32_t, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        } else if (peek_stack(stack).type == OBJECT_SIGNED) {
-            int32_t second = pop_stack(int32_t, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        } else if (peek_stack(stack).type == OBJECT_FLOAT) {
-            float second = pop_stack(float, stack);
-            o.type = OBJECT_FLOAT;
-            *(float *) o.data = first / second;
-        }
-    }
-
+    o = divide(pop_stack(stack), pop_stack(stack));
     push_stack(stack, o);
     return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_call(uint8_t* ip, stack_t* stack){
-    if(peek_stack(stack).type != OBJECT_UNSIGNED || peek_stack(stack).size != sizeof(uint32_t))
+    if(peek_stack(stack).type != OBJECT_NUMBER || peek_stack(stack).size != sizeof(uint32_t))
         exit(-10);
-    uint32_t address = pop_stack(uint32_t, stack);
+    uint32_t address = (uint32_t)pop_stack(stack).value;
 
     object_t o;
     o.type = OBJECT_POINTER;
     o.size = sizeof(intptr_t);
-    o.data = malloc(sizeof(intptr_t));
-    *(intptr_t *)o.data = (intptr_t)(ip + 1) - (intptr_t)(stack->data[0].data);
+    o.value = (uint32_t)((ip + 1) - (intptr_t)(stack->data[0].ptr));
     push_stack(stack, o);
 
-    return stack->data[0].data + address;
+    return stack->data[0].ptr + address;
 }
 
 uint8_t* opt_return(uint8_t* ip, stack_t* stack){
     if(peek_stack(stack).type != OBJECT_POINTER || peek_stack(stack).size != sizeof(intptr_t))
         exit(-10);
-    intptr_t address = pop_stack(intptr_t, stack);
-    return stack->data[0].data + address;
+    uint32_t address = (uint32_t)pop_stack(stack).value;
+    return stack->data[0].ptr + address;
 }
 
 void register_instructions(instruction* opt){

@@ -6,37 +6,26 @@
 #define VIRTUAL_MACHIEN_STACK_H
 
 #include <stdint.h>
-
-enum Object_Types  {
-    OBJECT_FLAG,
-    OBJECT_SIGNED,
-    OBJECT_UNSIGNED,
-    OBJECT_FLOAT,
-    OBJECT_POINTER,
-    OBJECT_C_POINTER
-};
-
-typedef struct Object{
-    enum Object_Types type;
-    size_t size;
-    void* data;
-} object_t;
+#include "object.h"
 
 typedef struct Stack{
     object_t* data;
     uint8_t top;
 } stack_t;
 
-#define pop_stack(type, stack)  ({type var; var = *(type *) peek_stack(stack).data; remove_from_stack(stack); var;})
-
+//#define pop_stack(type, stack)  ({type var; var = read_from_object(type, stack); remove_from_stack(stack); var;})
 void del_stack(stack_t* stack);
+
+object_t pop_stack(stack_t* stack){
+    return stack->data[stack->top--];
+}
 
 object_t peek_stack(stack_t* stack){
     return stack->data[stack->top];
 }
 
 void remove_from_stack(stack_t *stack){
-    free(stack->data[stack->top--].data);
+    stack->top--;
 }
 
 void push_stack(stack_t* stack, object_t object){
