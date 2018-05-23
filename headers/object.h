@@ -26,12 +26,10 @@ typedef struct Object{
     unsigned signage;
     union {
         bitarr_t value;
-        float float_value;
+        double double_value;
         void* ptr;
     };
 } object_t;
-
-#define read_from_object(type, object) *(type*)(&(object).value)
 
 bitarr_t set_bit(bitarr_t target, uint8_t n){
     if (n > 63)
