@@ -1,5 +1,5 @@
 #include "unit_framework.h"
-#include "../instructions.h"
+#include "../headers/instructions.h"
 
 int unit_test_push_8_bit() {
     uint8_t code[3] = {'b', 0x3, 'h'};
@@ -8,7 +8,8 @@ int unit_test_push_8_bit() {
 
     ip = opt_push_8_bit(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 0x3);
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 0x3);
+    ASSERT_EQUAL(peek_stack(&stack).signage, 0);
     del_stack(&stack);
     return 0;
 }
@@ -20,7 +21,8 @@ int unit_test_push_16_bit() {
 
     ip = opt_push_16_bit(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint16_t*)peek_stack(&stack).data, 0x3);
+    ASSERT_EQUAL((uint16_t)peek_stack(&stack).value, 0x3);
+    ASSERT_EQUAL(peek_stack(&stack).signage, 0);
     del_stack(&stack);
     return 0;
 }
@@ -32,7 +34,8 @@ int unit_test_push_32_bit() {
 
     ip = opt_push_32_bit(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint16_t*)peek_stack(&stack).data, 0x3);
+    ASSERT_EQUAL((uint16_t)peek_stack(&stack).value, 0x3);
+    ASSERT_EQUAL(peek_stack(&stack).signage, 0);
     del_stack(&stack);
     return 0;
 }
@@ -49,7 +52,7 @@ int unit_test_jump() {
     uint8_t code[] = {'j', 0x4, '.', '.', 'k', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
-    stack.data[0].data = ip;
+    stack.data[0].ptr = ip;
 
     ip = opt_jump(ip, &stack);
     ASSERT_EQUAL(*ip, 'k');
@@ -64,11 +67,11 @@ int unit_test_push_string() {
 
     ip = opt_push_string(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, '!');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, '!');
     remove_from_stack(&stack);
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 'i');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 'i');
     remove_from_stack(&stack);
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 'h');
     del_stack(&stack);
     return 0;
 }
@@ -84,19 +87,19 @@ int unit_test_compare() {
 
     ip = opt_compare(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 0);
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 0);
 
     code[1] = 0x4;
     ip = code;
     ip = opt_compare(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 1);
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 1);
 
     code[1] = 0x2;
     ip = code;
     ip = opt_compare(ip, &stack);
     ASSERT_EQUAL(*ip, 'h');
-    ASSERT_EQUAL(*(uint8_t*)peek_stack(&stack).data, 2);
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 2);
 
     del_stack(&stack);
 
@@ -107,7 +110,7 @@ int unit_test_jump_not_equal() {
     uint8_t code[] = {'c', 0x4, 0x3, '!', 6, '.', 'k', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
-    stack.data[0].data = ip;
+    stack.data[0].ptr = ip;
 
     ip = opt_compare(ip, &stack);
     ip = opt_jump_not_equal(ip, &stack);
@@ -127,7 +130,7 @@ int unit_test_jump_equal() {
     uint8_t code[] = {'c', 0x4, 0x3, '=', 6, '.', 'k', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
-    stack.data[0].data = ip;
+    stack.data[0].ptr = ip;
 
     ip = opt_compare(ip, &stack);
     ip = opt_jump_equal(ip, &stack);
@@ -147,7 +150,7 @@ int unit_test_jump_less() {
     uint8_t code[] = {'c', 0x3, 0x4, '<', 6, '.', 'k', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
-    stack.data[0].data = ip;
+    stack.data[0].ptr = ip;
 
     ip = opt_compare(ip, &stack);
     ip = opt_jump_less(ip, &stack);
@@ -167,7 +170,7 @@ int unit_test_jump_grater() {
     uint8_t code[] = {'c', 0x4, 0x3, '>', 6, '.', 'k', 'h'};
     uint8_t* ip = code;
     stack_t stack = new_stack(1024);
-    stack.data[0].data = ip;
+    stack.data[0].ptr = ip;
 
     ip = opt_compare(ip, &stack);
     ip = opt_jump_grater(ip, &stack);
@@ -184,23 +187,77 @@ int unit_test_jump_grater() {
 }
 
 int unit_test_argumentify() {
+    uint8_t code[] = {'b', 0x3, 'a', 0x1, '.', '.', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
 
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_argumentify(ip, &stack);
+    ASSERT_EQUAL(*ip, '.');
+    ASSERT_EQUAL(code[5], 0x3);
+    del_stack(&stack);
+    return 0;
 }
 
 int unit_test_sum() {
+    uint8_t code[] = {'b', 0x1,'b', 1, '+', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
 
+  //  ip = opt_push_8_bit(ip, &stack);
+    object_t o;
+    o.type = OBJECT_NUMBER;
+    o.size = sizeof(uint16_t);
+    o.value = 13;
+    o.signage = 1;
+    push_stack(&stack, o);
+    ip = ip + 2;
+
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_sum(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 12);
+    return 0;
 }
 
 int unit_test_sub() {
+    uint8_t code[] = {'b', 0x3, 'b', 0x1, '-', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
 
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_sub(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 2);
+    ASSERT_EQUAL(peek_stack(&stack).signage, 0);
+    return 0;
 }
 
 int unit_test_multiply() {
+    uint8_t code[] = {'b', 0x3, 'b', 0x1, '*', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
 
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_multiply(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 0x3);
+    return 0;
 }
 
 int unit_test_divide() {
+    /*uint8_t code[] = {'b', 0x1, 'b', 0x3, '/', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
 
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_push_8_bit(ip, &stack);
+    ip = opt_divide(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL(*(float*)peek_stack(&stack).data, 0x3);*/
+    return 0;
 }
 
 int unit_test_call() {
