@@ -9,7 +9,7 @@
 
 typedef uint8_t* (*instruction)(uint8_t * ip, stack_t* stack);
 
-uint8_t* add_to_ip(uint8_t* ip, uint8_t amount);
+uint8_t* add_to_ip(uint8_t* ip, uint32_t amount);
 
 uint8_t* opt_nop(uint8_t* ip, stack_t* stack);
 
@@ -38,8 +38,6 @@ uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack);
 uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack);
 
 uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack);
-
-uint8_t* opt_argumentify(uint8_t* ip, stack_t* stack);
 
 uint8_t* opt_sum(uint8_t* ip, stack_t* stack);
 

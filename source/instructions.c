@@ -15,9 +15,6 @@ void register_instructions(instruction* opt){
     }
 
     opt['.'] = opt_nop; // No operation. I move nothing and nothing moves me.
-    opt['a'] = opt_argumentify; // Places the amount of elements specified by its argument from the stack in front of the next operation.
-    // (Effectively making the data from the stack into that operations arguments)
-    // NOTE: You must reserve space in the byte code for the data to be placed. Use the nop operation ('.') to reserve space.
 
     ////// Opt codes pushing raw data onto the stack or prints raw data//////
     opt['b'] = opt_push_8_bit; // Pushes its argument as unsigned byte to the stack.
@@ -29,23 +26,23 @@ void register_instructions(instruction* opt){
     opt['p'] = opt_emit_string; // Pops the amount of bytes specified by its argument of the stack and writes them to standard out.
 
     ////// Opt codes which control the flow //////
-    opt['j'] = opt_jump; // Jumps to the address specified in its argument. Expects 32bit num
-    opt['<'] = opt_jump_less; // Executes a jump if the last compare determent that the first argument is smaller then the second argument of the compare. Expects 32bit num
-    opt['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first argument is grater then the second argument of the compare. Expects 32bit num
-    opt['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are equal. Expects 32bit num
-    opt['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second argument of that compare are not equal. Expects 32bit num
+    opt['j'] = opt_jump; // Jumps to the address specified on the stack. Expects 32bit num
+    opt['<'] = opt_jump_less; // Executes a jump if the last compare determent that the first element is smaller then the second element of the stack. Expects 32bit num as first element on stack.
+    opt['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first element is grater then the second element of the stack. Expects 32bit num as first element on stack.
+    opt['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second element of the stack are equal. Expects 32bit num as first element on stack.
+    opt['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second element of the stack are not equal. Expects 32bit num as first element on stack.
     opt['g'] = opt_call;
     opt['r'] = opt_return;
 
     ////// Logic controlling opt codes //////
-    opt['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two arguments are equal or if the first one is smaller/grater then the second.
+    opt['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two first objects on the stack are equal or if the first one is smaller/grater then the second.
     opt['+'] = opt_sum; // Sums the next two bytes and pushes the result onto the stack.
     opt['-'] = opt_sub; // Subtracts the next two bytes and pushes the result onto the stack.
     opt['*'] = opt_multiply; // Multiples the next two bytes and pushes the result onto the stack.
     opt['/'] = opt_divide; // Divides the next two bytes and pushes the result onto the stack.
 }
 
-uint8_t* add_to_ip(uint8_t* ip, uint8_t amount){
+uint8_t* add_to_ip(uint8_t* ip, uint32_t amount){
     while (amount > 0){
         ip++;
         if(*ip == ';'){
@@ -121,8 +118,8 @@ uint8_t* opt_emit_char(uint8_t* ip, stack_t* stack){
 }
 
 uint8_t* opt_jump(uint8_t* ip, stack_t* stack){
-    uint8_t arg = *(add_to_ip(ip, 1));
-    return add_to_ip(stack->data[0].ptr, arg);
+    uint32_t address = (uint32_t)pop_stack(stack).value;
+    return add_to_ip(stack->data[0].ptr, address);
 }
 
 uint8_t* opt_push_string(uint8_t* ip, stack_t* stack){
@@ -155,85 +152,63 @@ uint8_t* opt_emit_string(uint8_t* ip, stack_t* stack) {
 }
 
 uint8_t* opt_compare(uint8_t* ip, stack_t* stack) {
-    uint8_t first = *(ip+1);
-    uint8_t second = *(ip+2);
+    object_t first = pop_stack(stack);
+    object_t second = pop_stack(stack);
 
     object_t object;
     object.type = OBJECT_FLAG;
     object.size = sizeof(uint8_t);
 
-    if(first-second == 0){
+    if(subtract(first, second).value == 0){
         object.value = 0;
-    }else if(first-second > 0) {
+    }else if(subtract(first, second).signage == 0) {
         object.value = 1;
     }else{
         object.value = 2;
     }
     push_stack(stack, object);
-
-    return add_to_ip(ip, 3);
+    return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump_not_equal(uint8_t* ip, stack_t* stack) {
-    if(peek_stack(stack).type != OBJECT_FLAG)
-        exit(-10);
-
+    uint32_t address = (uint32_t)pop_stack(stack).value;
     uint8_t flag = (uint8_t)pop_stack(stack).value;
-    uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag != 0)
-        return add_to_ip(stack->data[0].ptr, arg);
+        return add_to_ip(stack->data[0].ptr, address);
     else
-        return add_to_ip(ip, 2);
+        return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump_equal(uint8_t* ip, stack_t* stack) {
-    if(peek_stack(stack).type != OBJECT_FLAG)
-        exit(-10);
-
+    uint32_t address = (uint32_t)pop_stack(stack).value;
     uint8_t flag = (uint8_t)pop_stack(stack).value;
-    uint8_t arg = *add_to_ip(ip, 1);
+
 
     if(flag == 0)
-        return add_to_ip(stack->data[0].ptr, arg);
+        return add_to_ip(stack->data[0].ptr, address);
     else
-        return add_to_ip(ip, 2);
+        return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump_grater(uint8_t* ip, stack_t* stack) {
-    if(peek_stack(stack).type != OBJECT_FLAG)
-        exit(-10);
-
+    uint32_t address = (uint32_t)pop_stack(stack).value;
     uint8_t flag = (uint8_t)pop_stack(stack).value;
-    uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 1)
-        return add_to_ip(stack->data[0].ptr, arg);
+        return add_to_ip(stack->data[0].ptr, address);
     else
-        return add_to_ip(ip, 2);
+        return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_jump_less(uint8_t* ip, stack_t* stack) {
-    if(peek_stack(stack).type != OBJECT_FLAG)
-        exit(-10);
-
+    uint32_t address = (uint32_t)pop_stack(stack).value;
     uint8_t flag = (uint8_t)pop_stack(stack).value;
-    uint8_t arg = *add_to_ip(ip, 1);
 
     if(flag == 2)
-        return add_to_ip(stack->data[0].ptr, arg);
+        return add_to_ip(stack->data[0].ptr, address);
     else
-        return add_to_ip(ip, 2);
-}
-
-
-uint8_t* opt_argumentify(uint8_t* ip, stack_t* stack) {
-    uint8_t amount = *add_to_ip(ip, 1);
-    for(uint8_t i = 0; i < amount; i++){
-        object_t o = pop_stack(stack);
-        memcpy(add_to_ip(ip, 3 + i), &o.value, o.size);
-    }
-    return add_to_ip(ip, 2);
+        return add_to_ip(ip, 1);
 }
 
 uint8_t* opt_sum(uint8_t* ip, stack_t* stack) {
