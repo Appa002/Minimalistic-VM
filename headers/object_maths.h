@@ -5,131 +5,21 @@
 #ifndef VIRTUAL_MACHIEN_OBJECT_MATHS_H
 #define VIRTUAL_MACHIEN_OBJECT_MATHS_H
 
+#include <stdbool.h>
+
 #include "object.h"
 
-double underflow_save_subtract(double a, double b, unsigned* signage){
-    *signage = (a > b) ? (0) : (1);
-    if(a > b)
-        return a - b;
-    else
-        return b - a;
-}
+double underflow_save_subtract(double a, double b, unsigned* signage);
 
-object_t add(object_t a, object_t b){
-    object_t out;
-    double result;
-    double a_value = a.value;
-    double b_value = b.value;
+bool larger_then(object_t a, object_t b);
 
-    if(a.type == OBJECT_FLOAT)
-        a_value = a.double_value;
+object_t add(object_t a, object_t b);
 
-    if(b.type == OBJECT_FLOAT)
-        b_value = b.double_value;
+object_t subtract(object_t a, object_t b);
 
-    if(a.signage == b.signage){
-        result = a_value + b_value;
-        out.signage = a.signage;
-    }else{
-        result = underflow_save_subtract(a_value, b_value, &out.signage);
-    }
+object_t multiply(object_t a, object_t b);
 
-    out.type = OBJECT_NUMBER;
-    out.value = (bitarr_t)result;
-    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT){
-        out.type = OBJECT_FLOAT;
-        out.double_value = result;
-    }
-
-    out.size = (a.size > b.size) ? (a.size) : (b.size);
-
-    return out;
-}
-
-object_t subtract(object_t a, object_t b){
-    object_t out;
-    double result;
-    double a_value = a.value;
-    double b_value = b.value;
-
-    out.type = OBJECT_NUMBER;
-    out.size = (a.size > b.size) ? (a.size) : (b.size);
-
-    if (a.type == OBJECT_FLOAT){
-        a_value = a.double_value;
-        out.type = OBJECT_FLOAT;
-    }
-    if (b.type == OBJECT_FLOAT){
-        b_value = b.double_value;
-        out.type = OBJECT_FLOAT;
-    }
-
-    if(a.signage == b.signage){
-        if(a.signage == 1){
-            b.signage = 0;
-            return add(a, b);
-        }else{
-            result = underflow_save_subtract(a_value, b_value, &out.signage);
-        }
-    }else{
-        result = a_value + b_value;
-        out.signage = (a.signage == 1) ? (1) : (0);
-    }
-
-    out.value = (bitarr_t)result;
-    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT)
-        out.double_value = result;
-
-    return out;
-}
-
-
-object_t multiply(object_t a, object_t b){
-    object_t out;
-    double a_value = a.value;
-    double b_value = b.value;
-    double result;
-
-    if(a.type == OBJECT_FLOAT)
-        a_value = a.double_value;
-    if(a.type == OBJECT_FLOAT)
-        b_value = b.double_value;
-
-    result = a_value * b_value;
-    out.size = (a.size > b.size) ? (a.size) : (b.size);
-    out.signage = (a.signage == b.signage) ? (0) : (1);
-
-    out.type = OBJECT_NUMBER;
-    out.value = (bitarr_t)result;
-    if(a.type == OBJECT_FLOAT || b.type == OBJECT_FLOAT){
-        out.double_value = result;
-        out.type = OBJECT_FLOAT;
-    }
-
-    return out;
-}
-
-object_t divide(object_t a, object_t b){
-    object_t out;
-
-    double a_value = a.value;
-    double b_value = b.value;
-
-    if(a.type == OBJECT_FLOAT)
-        a_value = a.double_value;
-    if(a.type == OBJECT_FLOAT)
-        b_value = b.double_value;
-
-    out.double_value = a_value / b_value;
-    out.type = OBJECT_FLOAT;
-
-    if((bitarr_t)out.double_value == out.double_value)
-        out.type = OBJECT_NUMBER;
-
-    out.size = sizeof(uint32_t);
-    out.signage = (a.signage != b.signage) ? (1) : (0);
-    return out;
-}
+object_t divide(object_t a, object_t b);
 
 
 #endif //VIRTUAL_MACHIEN_OBJECT_MATHS_H
