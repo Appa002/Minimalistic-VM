@@ -17,15 +17,12 @@ enum Object_Types  {
     OBJECT_C_POINTER
 };
 
-typedef uint32_t bitarr_t;
-
 typedef struct Object{
     enum Object_Types type;
     uint8_t size;
     unsigned signage;
     union {
-        bitarr_t value;
-        double double_value;
+        double value;
         void* ptr;
     };
 } object_t;
