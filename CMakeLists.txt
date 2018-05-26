@@ -3,5 +3,9 @@ project(virtual_machien C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(virtual_machien main.c headers/instructions.h headers/stack.h headers/utils.h headers/object.h headers/object_maths.h)
+
+file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/source/*.c)
+file(GLOB headers ${CMAKE_CURRENT_SOURCE_DIR}/headers/*.h)
+
+add_executable(virtual_machien main.c ${sources} ${headers})
 add_subdirectory(tests)
