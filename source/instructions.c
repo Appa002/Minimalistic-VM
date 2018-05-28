@@ -256,10 +256,13 @@ uint8_t* opt_call(uint8_t* ip, stack_t* stack){
 }
 
 uint8_t* opt_return(uint8_t* ip, stack_t* stack){
-    if(peek_stack(stack).type != OBJECT_POINTER || peek_stack(stack).size != sizeof(intptr_t))
-        exit(-10);
-    uint32_t address = (uint32_t)pop_stack(stack).value;
-    return stack->data[0].ptr + address;
+    for(uint8_t i = stack->top; i > 0; i--){
+        if(stack->data[i].type == OBJECT_POINTER){
+            stack->top = i;
+            return stack->data[0].ptr + (uint32_t)stack->data[i].value;
+        }
+    }
+    exit(-10);
 }
 
 uint8_t* opt_read_from_stack(uint8_t* ip, stack_t* stack){
