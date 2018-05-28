@@ -26,6 +26,7 @@ void register_instructions(instruction* opt){
     opt['p'] = opt_emit_string; // Pops the amount of bytes specified by its argument of the stack and writes them to standard out.
     opt['$'] = opt_read_from_stack;
     opt['x'] = opt_pop_from_stack;
+    opt['#'] = opt_write_to_stack;
 
     ////// Opt codes which control the flow //////
     opt['j'] = opt_jump; // Jumps to the address specified on the stack. Expects 32bit num
@@ -268,6 +269,18 @@ uint8_t* opt_return(uint8_t* ip, stack_t* stack){
 uint8_t* opt_read_from_stack(uint8_t* ip, stack_t* stack){
     uint8_t depth = (uint8_t)pop_stack(stack).value;
     push_stack(stack, stack->data[stack->top - depth]);
+    return add_to_ip(ip, 1);
+}
+
+uint8_t* opt_write_to_stack(uint8_t* ip, stack_t* stack){
+    uint8_t depth = (uint8_t)pop_stack(stack).value;
+    uint8_t value = (uint8_t)pop_stack(stack).value;
+
+    stack->data[stack->top - depth].value = value;
+    stack->data[stack->top - depth].type = OBJECT_NUMBER;
+    stack->data[stack->top - depth].signage = 0;
+    stack->data[stack->top - depth].size = sizeof(uint8_t);
+
     return add_to_ip(ip, 1);
 }
 

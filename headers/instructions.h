@@ -53,6 +53,8 @@ uint8_t* opt_return(uint8_t* ip, stack_t* stack);
 
 uint8_t* opt_read_from_stack(uint8_t* ip, stack_t* stack);
 
+uint8_t* opt_write_to_stack(uint8_t* ip, stack_t* stack);
+
 uint8_t* opt_pop_from_stack(uint8_t *ip, stack_t *stack);
 
 void register_instructions(instruction* opt);
