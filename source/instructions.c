@@ -24,6 +24,8 @@ void register_instructions(instruction* opt){
     opt['e'] = opt_emit; // Pops one byte from the stack an writes it to standard out.
     opt['i'] = opt_emit_char; // Pops a element from the stack and prints es contents to standard as a ascii character.
     opt['p'] = opt_emit_string; // Pops the amount of bytes specified by its argument of the stack and writes them to standard out.
+    opt['$'] = opt_read_from_stack;
+    opt['x'] = opt_pop_from_stack;
 
     ////// Opt codes which control the flow //////
     opt['j'] = opt_jump; // Jumps to the address specified on the stack. Expects 32bit num
@@ -31,8 +33,8 @@ void register_instructions(instruction* opt){
     opt['>'] = opt_jump_grater; //  Executes a jump if the last compare determent that the first element is grater then the second element of the stack. Expects 32bit num as first element on stack.
     opt['='] = opt_jump_equal; // Executes a jump if the last compare determent that the first and second element of the stack are equal. Expects 32bit num as first element on stack.
     opt['!'] = opt_jump_not_equal; // Executes a jump if the last compare determent that the first and second element of the stack are not equal. Expects 32bit num as first element on stack.
-    opt['g'] = opt_call;
-    opt['r'] = opt_return;
+    opt['g'] = opt_call; // Executes a jump and pushes an pointer with the calls address on to the stack
+    opt['r'] = opt_return; // Goes through the stack top-down and jumps to the first address found. (Returns from a 'call' call)
 
     ////// Logic controlling opt codes //////
     opt['c'] = opt_compare; // Pushes a Flag onto the stack which specifies if the two first objects on the stack are equal or if the first one is smaller/grater then the second.
@@ -258,4 +260,15 @@ uint8_t* opt_return(uint8_t* ip, stack_t* stack){
         exit(-10);
     uint32_t address = (uint32_t)pop_stack(stack).value;
     return stack->data[0].ptr + address;
+}
+
+uint8_t* opt_read_from_stack(uint8_t* ip, stack_t* stack){
+    uint8_t depth = (uint8_t)pop_stack(stack).value;
+    push_stack(stack, stack->data[stack->top - depth]);
+    return add_to_ip(ip, 1);
+}
+
+uint8_t* opt_pop_from_stack(uint8_t *ip, stack_t *stack){
+    pop_stack(stack);
+    return add_to_ip(ip, 1);
 }

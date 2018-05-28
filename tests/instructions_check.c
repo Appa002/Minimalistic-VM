@@ -326,6 +326,28 @@ int unit_test_return() {
     return 0;
 }
 
+int unit_test_read_from_stack(){
+    uint8_t code[] = {'b', 3, 'b', 0, 'b', 0, 'b', 2, '$', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
+
+    ip = execute(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 3);
+    return 0;
+}
+
+int unit_test_pop_from_stack(){
+    uint8_t code[] = {'b', 3, 'b', 0, 'x', 'h'};
+    uint8_t* ip = code;
+    stack_t stack = new_stack(1024);
+
+    ip = execute(ip, &stack);
+    ASSERT_EQUAL(*ip, 'h');
+    ASSERT_EQUAL((uint8_t)peek_stack(&stack).value, 3);
+    return 0;
+}
+
 int main() {
     register_test(unit_test_push_8_bit);
     register_test(unit_test_push_16_bit);
@@ -346,6 +368,8 @@ int main() {
     register_test(unit_test_divide);
     register_test(unit_test_call);
     register_test(unit_test_return);
+    register_test(unit_test_read_from_stack);
+    register_test(unit_test_pop_from_stack);
 
     start_unit_test();
     end_unit_test();
