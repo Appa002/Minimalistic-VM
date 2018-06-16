@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <memory.h>
 
 #include "headers/instructions.h"
 #include "headers/stack.h"
@@ -60,6 +61,16 @@ int main(int argc, char** argv) {
         o.value = strtol(argv[i + 2], &end, 10);
         if(argv[i + 3] != end)
             push_stack(&stack, o);
+        else{
+            for(size_t j = 0; j < strlen(argv[i + 2]); j++){
+                object_t obj;
+                obj.type = OBJECT_NUMBER;
+                obj.signage = 0;
+                obj.size = sizeof(uint8_t);
+                obj.value = argv[i + 2][j];
+                push_stack(&stack, obj);
+            }
+        }
 
     }
 
