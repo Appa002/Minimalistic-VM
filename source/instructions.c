@@ -27,6 +27,7 @@ void register_instructions(instruction* opt){
     opt['$'] = opt_read_from_stack;
     opt['x'] = opt_pop_from_stack;
     opt['#'] = opt_write_to_stack;
+    opt['~'] = opt_get_num_of_elements_on_stack;
 
     ////// Opt codes which control the flow //////
     opt['j'] = opt_jump; // Jumps to the address specified on the stack. Expects 32bit num
@@ -268,7 +269,7 @@ uint8_t* opt_return(uint8_t* ip, stack_t* stack){
 
 uint8_t* opt_read_from_stack(uint8_t* ip, stack_t* stack){
     uint8_t depth = (uint8_t)pop_stack(stack).value;
-    push_stack(stack, stack->data[stack->top - depth]);
+    push_stack(stack, stack->data[depth]);
     return add_to_ip(ip, 1);
 }
 
@@ -276,10 +277,10 @@ uint8_t* opt_write_to_stack(uint8_t* ip, stack_t* stack){
     uint8_t depth = (uint8_t)pop_stack(stack).value;
     uint8_t value = (uint8_t)pop_stack(stack).value;
 
-    stack->data[stack->top - depth].value = value;
-    stack->data[stack->top - depth].type = OBJECT_NUMBER;
-    stack->data[stack->top - depth].signage = 0;
-    stack->data[stack->top - depth].size = sizeof(uint8_t);
+    stack->data[depth].value = value;
+    stack->data[depth].type = OBJECT_NUMBER;
+    stack->data[depth].signage = 0;
+    stack->data[depth].size = sizeof(uint8_t);
 
     return add_to_ip(ip, 1);
 }
@@ -287,4 +288,14 @@ uint8_t* opt_write_to_stack(uint8_t* ip, stack_t* stack){
 uint8_t* opt_pop_from_stack(uint8_t *ip, stack_t *stack){
     pop_stack(stack);
     return add_to_ip(ip, 1);
+}
+
+uint8_t* opt_get_num_of_elements_on_stack(uint8_t *ip, stack_t *stack){
+    object_t o;
+    o.type = OBJECT_NUMBER;
+    o.size = sizeof(uint8_t);
+    o.signage = 0;
+    o.value = stack->top + 1;
+    push_stack(stack, o);
+    add_to_ip(ip, 1);
 }
