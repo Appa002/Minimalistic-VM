@@ -50,6 +50,19 @@ int main(int argc, char** argv) {
     entry_ptr.ptr = ip;
     stack.data[0] = entry_ptr;
 
+    for(size_t i = 0; i < argc - 2; i++){
+        object_t o;
+        o.type = OBJECT_NUMBER;
+        o.signage = 0;
+        o.size = sizeof(uint8_t);
+
+        char* end;
+        o.value = strtol(argv[i + 2], &end, 10);
+        if(argv[i + 3] != end)
+            push_stack(&stack, o);
+
+    }
+
     while(*ip != 'h'){
         ip = opt[*ip](ip, &stack);
     }
