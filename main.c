@@ -7,7 +7,7 @@
 #include "headers/stack.h"
 
 void usage(){
-    printf("Usage vm [FILE]");
+    printf("Usage vm [FILE] [Optional vm arguments]");
 }
 
 int load_file(const char *filename, unsigned char **result) {
